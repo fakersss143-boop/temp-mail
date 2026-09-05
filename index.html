@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Temp Mail — Instant Disposable Email</title>
+<title>Temp Mail — Ultra-Reliable</title>
 <style>
   :root {
     --bg: #080c18;
@@ -15,444 +15,252 @@
     --accent: #5b8cff;
     --accent-dim: #2a3a63;
     --good: #37d67a;
+    --warn: #ffcc00;
+    --error: #ff4b4b;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    padding: 32px 16px;
-  }
+  body { margin: 0; background: var(--bg); color: var(--text); min-height: 100vh; padding: 32px 16px; }
   .wrap { max-width: 760px; margin: 0 auto; }
 
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 28px;
-  }
-  .brand {
-    font-weight: 600;
-    font-size: 15px;
-    letter-spacing: -0.01em;
-  }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .brand { font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
   .brand span { color: var(--accent); }
-  .status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--text-dim);
-  }
-  .dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--good);
-    box-shadow: 0 0 0 3px rgba(55,214,122,0.15);
-  }
+  .status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); transition: 0.3s; }
+  .dot.online { background: var(--good); box-shadow: 0 0 8px var(--good); }
+  .dot.offline { background: var(--error); box-shadow: 0 0 8px var(--error); }
 
-  h1 {
-    font-size: 26px;
-    line-height: 1.25;
-    margin: 0 0 8px;
-    letter-spacing: -0.01em;
-  }
-  .sub {
-    color: var(--text-dim);
-    font-size: 14px;
-    margin: 0 0 24px;
-    max-width: 46ch;
-  }
-
-  .address-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 18px;
-    margin-bottom: 16px;
-  }
-  .address-label {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-bottom: 8px;
-  }
-  .address-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
+  .address-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+  .address-label { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+  .address-row { display: flex; gap: 8px; align-items: center; }
   .address-field {
-    flex: 1;
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text);
-    overflow-x: auto;
-    white-space: nowrap;
+    flex: 1; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; font-size: 15px; font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis;
   }
-  button {
-    font-family: inherit;
-    cursor: pointer;
-    border: none;
-    border-radius: 10px;
-    padding: 12px 16px;
-    font-size: 13px;
-    font-weight: 600;
-    transition: background 0.15s ease, transform 0.1s ease;
-  }
+  button { font-family: inherit; cursor: pointer; border: none; border-radius: 10px; padding: 12px 16px; font-size: 13px; font-weight: 600; transition: 0.15s; }
   button:active { transform: scale(0.97); }
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-  }
-  .btn-primary:hover { background: #4a7bef; }
-  .btn-ghost {
-    background: var(--panel-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-  .btn-ghost:hover { border-color: var(--accent-dim); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
 
-  .meta-row {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 12px;
-    font-size: 12px;
-    color: var(--text-dim);
-  }
-
-  .inbox-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden;
-  }
-  .inbox-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border);
-    font-size: 13px;
-    font-weight: 600;
-  }
-  .watching {
-    font-size: 12px;
-    font-weight: 400;
-    color: var(--text-dim);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .spinner {
-    width: 10px; height: 10px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
+  .inbox-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; min-height: 200px; }
+  .inbox-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; }
+  
+  .watching { font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+  .spinner { width: 10px; height: 10px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .empty-state {
-    padding: 48px 24px;
-    text-align: center;
-    color: var(--text-dim);
-  }
-  .empty-state .icon { font-size: 28px; margin-bottom: 10px; opacity: 0.6; }
-  .empty-state .title { color: var(--text); font-weight: 600; font-size: 14px; margin-bottom: 4px; }
-  .empty-state .desc { font-size: 13px; }
+  .empty-state { padding: 48px 24px; text-align: center; color: var(--text-dim); font-size: 14px; }
+  .error-tip { font-size: 12px; color: var(--warn); margin-top: 10px; display: none; }
 
-  .mail-item {
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    animation: slideIn 0.3s ease;
-  }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .mail-item:last-child { border-bottom: none; }
+  .mail-item { padding: 14px 18px; border-bottom: 1px solid var(--border); cursor: pointer; }
   .mail-item:hover { background: var(--panel-2); }
-  .mail-item.unread .mail-from::before {
-    content: "";
-    display: inline-block;
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    margin-right: 7px;
-  }
-  .mail-top { display: flex; justify-content: space-between; font-size: 13px; }
-  .mail-from { font-weight: 600; }
-  .mail-time { color: var(--text-dim); font-size: 12px; }
-  .mail-subject { font-size: 13px; color: var(--text); }
-  .mail-preview { font-size: 12px; color: var(--text-dim); }
+  .mail-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .mail-from { font-weight: 600; color: var(--text); font-size: 14px; }
+  .mail-subject { font-size: 13px; color: var(--text-dim); }
 
-  .reader {
-    padding: 20px 18px;
-  }
-  .reader-back {
-    background: none; border: none; color: var(--text-dim);
-    font-size: 12px; padding: 0; margin-bottom: 14px;
-  }
-  .reader-subject { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
-  .reader-meta { font-size: 12px; color: var(--text-dim); margin-bottom: 16px; }
-  .reader-body { font-size: 14px; line-height: 1.6; color: var(--text); }
-  .reader-body code {
-    background: var(--panel-2);
-    padding: 2px 6px;
-    border-radius: 5px;
-    font-size: 13px;
-  }
+  .reader { padding: 20px; }
+  .reader-back { color: var(--accent); background: none; margin-bottom: 15px; padding: 0; }
+  iframe { width: 100%; border: none; background: white; border-radius: 8px; min-height: 400px; margin-top: 15px; }
 
-  footer {
-    text-align: center;
-    color: var(--text-dim);
-    font-size: 12px;
-    margin-top: 24px;
-  }
-
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 10px 18px;
-    border-radius: 10px;
-    font-size: 13px;
-    opacity: 0;
-    transition: all 0.25s ease;
-    pointer-events: none;
-  }
-  .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--accent); color: white; padding: 8px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
-<div class="wrap">
 
+<div class="wrap">
   <header>
-    <div class="brand">Temp<span>Mail</span></div>
-    <div class="status"><span class="dot"></span> Online</div>
+    <div class="brand">Temp<span>Mail</span> Pro</div>
+    <div class="status">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">Connecting...</span>
+    </div>
   </header>
 
-  <h1>Free temp mail — instant disposable email address</h1>
-  <p class="sub">Generate a throwaway inbox in seconds. No sign-up, no personal info. This inbox is live — it can receive real email.</p>
-
   <div class="address-card">
-    <div class="address-label">Your address</div>
+    <div class="address-label">Your Private Inbox</div>
     <div class="address-row">
-      <div class="address-field" id="addressField">generating…</div>
+      <div class="address-field" id="addressField">Initialising...</div>
       <button class="btn-ghost" id="copyBtn">Copy</button>
       <button class="btn-primary" id="newBtn">New</button>
-    </div>
-    <div class="meta-row">
-      <span>Expires in 7 days · demo mode</span>
-      <span id="clock"></span>
     </div>
   </div>
 
   <div class="inbox-card">
     <div class="inbox-header">
       Inbox
-      <span class="watching"><span class="spinner"></span> Watching for new mail…</span>
+      <span class="watching" id="syncStatus">
+        <span class="spinner"></span> Syncing...
+      </span>
     </div>
     <div id="inboxBody">
-      <div class="empty-state">
-        <div class="icon">✉️</div>
-        <div class="title">No emails yet</div>
-        <div class="desc">Simulated emails will appear here shortly.</div>
+      <div class="empty-state" id="mainLoader">
+        Waiting for mail...
+        <div class="error-tip" id="troubleshoot">
+          Hint: If it stays "Initialising", try turning off AdBlockers.
+        </div>
       </div>
     </div>
   </div>
-
-  <footer>Custom interface, powered by a free public temp-mail backend · addresses are shared/public — don't use for anything sensitive</footer>
 </div>
 
-<div class="toast" id="toast">Copied to clipboard</div>
+<div class="toast" id="toast">Copied!</div>
 
 <script>
-const API = "https://www.1secmail.com/api/v1/";
-const CORS_PROXY = "https://api.allorigins.win/raw?url=";
+const API = "https://api.mail.gw";
+let token = localStorage.getItem('tm_token') || "";
+let account = JSON.parse(localStorage.getItem('tm_acc')) || null;
+let messages = [];
 
-function proxied(url) {
-  return `${CORS_PROXY}${encodeURIComponent(url)}`;
-}
-
+// Elements
 const addressField = document.getElementById('addressField');
-const copyBtn = document.getElementById('copyBtn');
-const newBtn = document.getElementById('newBtn');
 const inboxBody = document.getElementById('inboxBody');
-const toast = document.getElementById('toast');
-const clockEl = document.getElementById('clock');
-const watchingEl = document.querySelector('.watching');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const troubleshoot = document.getElementById('troubleshoot');
 
-let currentLogin = "";
-let currentDomain = "";
-let mails = [];
-let pollTimer = null;
-let seenIds = new Set();
-
-function showToast(msg) {
-  toast.textContent = msg;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 1800);
+async function call(path, options = {}) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    
+    const resp = await fetch(API + path, { ...options, headers });
+    if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.message || 'API Error');
+    }
+    return resp.status === 204 ? null : resp.json();
 }
 
-function timeAgo(dateStr) {
-  const diff = Math.max(0, Date.now() - new Date(dateStr.replace(' ', 'T')).getTime());
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  return `${hrs}h ago`;
+async function init() {
+    try {
+        updateStatus("connecting", "Finding Domain...");
+        
+        // If we have a stored account, try to login
+        if (account && token) {
+            addressField.textContent = account.address;
+            updateStatus("online", "Online");
+            startPolling();
+            return;
+        }
+
+        // 1. Get Domains
+        const domains = await call('/domains');
+        const domain = domains['hydra:member'][0].domain;
+
+        // 2. Create User
+        const user = Math.random().toString(36).substring(2, 12);
+        const email = `${user}@${domain}`;
+        const pass = 'pass' + Math.random().toString(36).substring(2, 8);
+
+        updateStatus("connecting", "Securing Inbox...");
+        await call('/accounts', {
+            method: 'POST',
+            body: JSON.stringify({ address: email, password: pass })
+        });
+
+        // 3. Login
+        const auth = await call('/token', {
+            method: 'POST',
+            body: JSON.stringify({ address: email, password: pass })
+        });
+
+        token = auth.token;
+        account = { address: email };
+        localStorage.setItem('tm_token', token);
+        localStorage.setItem('tm_acc', JSON.stringify(account));
+        
+        addressField.textContent = email;
+        updateStatus("online", "Online");
+        startPolling();
+
+    } catch (e) {
+        console.error(e);
+        updateStatus("offline", "Failed to Connect");
+        addressField.textContent = "Connection Error";
+        troubleshoot.style.display = "block";
+    }
 }
 
-function renderEmpty(text) {
-  inboxBody.innerHTML = `
-    <div class="empty-state">
-      <div class="icon">✉️</div>
-      <div class="title">No emails yet</div>
-      <div class="desc">${text || "Emails sent to this address will appear here automatically."}</div>
-    </div>`;
+async function checkMail() {
+    if (!token) return;
+    try {
+        const data = await call('/messages');
+        const newMsgs = data['hydra:member'];
+        
+        if (JSON.stringify(newMsgs) !== JSON.stringify(messages)) {
+            messages = newMsgs;
+            renderList();
+        }
+        document.getElementById('syncStatus').innerHTML = `<span class="spinner"></span> Watching for mail...`;
+    } catch (e) {
+        document.getElementById('syncStatus').innerHTML = `⚠️ Sync Paused`;
+    }
 }
 
 function renderList() {
-  if (mails.length === 0) { renderEmpty(); return; }
-  inboxBody.innerHTML = mails.map((m, i) => `
-    <div class="mail-item ${m.unread ? 'unread' : ''}" data-index="${i}">
-      <div class="mail-top">
-        <span class="mail-from">${m.from || 'unknown sender'}</span>
-        <span class="mail-time">${timeAgo(m.date)}</span>
-      </div>
-      <div class="mail-subject">${m.subject || '(no subject)'}</div>
-    </div>
-  `).join('');
-
-  inboxBody.querySelectorAll('.mail-item').forEach(el => {
-    el.addEventListener('click', () => {
-      const idx = parseInt(el.getAttribute('data-index'));
-      openMail(idx);
-    });
-  });
-}
-
-async function openMail(idx) {
-  const m = mails[idx];
-  m.unread = false;
-  inboxBody.innerHTML = `<div class="reader"><button class="reader-back" id="backBtn">← Back to inbox</button><div class="reader-subject">${m.subject || '(no subject)'}</div><div class="reader-meta">Loading message…</div></div>`;
-  document.getElementById('backBtn').addEventListener('click', renderList);
-
-  try {
-    const url = proxied(`${API}?action=readMessage&login=${encodeURIComponent(currentLogin)}&domain=${encodeURIComponent(currentDomain)}&id=${m.id}`);
-    const res = await fetch(url);
-    const full = await res.json();
-    const bodyHtml = full.htmlBody && full.htmlBody.length ? full.htmlBody : (full.textBody || full.body || '').replace(/\n/g, '<br>');
-    inboxBody.innerHTML = `
-      <div class="reader">
-        <button class="reader-back" id="backBtn">← Back to inbox</button>
-        <div class="reader-subject">${full.subject || '(no subject)'}</div>
-        <div class="reader-meta">From ${full.from || 'unknown'} · ${timeAgo(full.date)}</div>
-        <div class="reader-body">${bodyHtml || '(empty message)'}</div>
-      </div>`;
-    document.getElementById('backBtn').addEventListener('click', renderList);
-  } catch (e) {
-    inboxBody.innerHTML = `<div class="reader"><button class="reader-back" id="backBtn">← Back to inbox</button><div class="reader-meta">Couldn't load this message: ${e.message}</div></div>`;
-    document.getElementById('backBtn').addEventListener('click', renderList);
-  }
-}
-
-async function pollMessages() {
-  if (!currentLogin) return;
-  try {
-    const url = proxied(`${API}?action=getMessages&login=${encodeURIComponent(currentLogin)}&domain=${encodeURIComponent(currentDomain)}`);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const members = await res.json();
-    let newOnes = 0;
-    for (const msg of members) {
-      if (!seenIds.has(msg.id)) {
-        seenIds.add(msg.id);
-        mails.unshift({ ...msg, unread: true });
-        newOnes++;
-      }
+    if (messages.length === 0) {
+        inboxBody.innerHTML = `<div class="empty-state">No emails yet.</div>`;
+        return;
     }
-    if (newOnes > 0) renderList();
-    watchingEl.innerHTML = `<span class="spinner"></span> Watching for new mail…`;
-  } catch (e) {
-    watchingEl.innerHTML = `<span class="spinner"></span> Reconnecting…`;
-  }
+    inboxBody.innerHTML = messages.map(m => `
+        <div class="mail-item" onclick="viewMail('${m.id}')">
+            <div class="mail-top">
+                <span class="mail-from">${m.from.address}</span>
+                <span class="mail-time">Just now</span>
+            </div>
+            <div class="mail-subject">${m.subject || '(No Subject)'}</div>
+        </div>
+    `).join('');
+}
+
+async function viewMail(id) {
+    inboxBody.innerHTML = `<div class="empty-state">Loading content...</div>`;
+    try {
+        const mail = await call(`/messages/${id}`);
+        inboxBody.innerHTML = `
+            <div class="reader">
+                <button class="reader-back" onclick="renderList()">← Back to Inbox</button>
+                <div class="reader-subject">${mail.subject}</div>
+                <div class="reader-body">
+                    <strong>From:</strong> ${mail.from.address}<br>
+                    <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
+                    ${mail.html ? `<iframe srcdoc="${mail.html[0].replace(/"/g, '&quot;')}"></iframe>` : mail.text}
+                </div>
+            </div>`;
+    } catch (e) {
+        renderList();
+        alert("Error loading message.");
+    }
+}
+
+function updateStatus(type, text) {
+    statusText.textContent = text;
+    statusDot.className = "dot " + (type === "online" ? "online" : type === "offline" ? "offline" : "");
 }
 
 function startPolling() {
-  if (pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(pollMessages, 6000);
-  pollMessages();
+    checkMail();
+    setInterval(checkMail, 5000);
 }
 
-async function generateNewAddress() {
-  addressField.textContent = "generating…";
-  renderEmpty("Setting up your inbox…");
-  mails = [];
-  seenIds = new Set();
-  currentLogin = "";
-  currentDomain = "";
-  if (pollTimer) clearInterval(pollTimer);
-
-  try {
-    let domRes;
-    try {
-      domRes = await fetch(proxied(`${API}?action=getDomainList`));
-    } catch (netErr) {
-      throw new Error(`Network blocked reaching 1secmail.com via proxy (${netErr.message}). Try again in a moment — the CORS relay can be briefly rate-limited.`);
-    }
-    if (!domRes.ok) throw new Error(`Domain list request failed: HTTP ${domRes.status}`);
-    const domains = await domRes.json();
-    if (!Array.isArray(domains) || !domains.length) throw new Error('No domains returned by the mail service');
-    const domain = domains[Math.floor(Math.random() * domains.length)];
-
-    const login = 'u' + Math.random().toString(36).slice(2, 10);
-
-    currentLogin = login;
-    currentDomain = domain;
-    addressField.textContent = `${login}@${domain}`;
-    renderEmpty();
-    startPolling();
-  } catch (e) {
-    console.error(e);
-    addressField.textContent = "couldn't generate address";
-    renderEmpty(e.message || "Setup failed. Try New again.");
-  }
-}
-
-copyBtn.addEventListener('click', () => {
-  if (!currentLogin) return;
-  navigator.clipboard.writeText(`${currentLogin}@${currentDomain}`).catch(() => {});
-  showToast("Copied to clipboard");
+document.getElementById('newBtn').addEventListener('click', () => {
+    localStorage.clear();
+    location.reload();
 });
 
-newBtn.addEventListener('click', generateNewAddress);
+document.getElementById('copyBtn').addEventListener('click', () => {
+    const email = addressField.textContent;
+    if (email.includes('@')) {
+        navigator.clipboard.writeText(email);
+        const t = document.getElementById('toast');
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+    }
+});
 
-function updateClock() {
-  const now = new Date();
-  clockEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-generateNewAddress();
+init();
 </script>
 </body>
 </html>
