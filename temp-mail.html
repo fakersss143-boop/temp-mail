@@ -1,1 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Burner — disposable email</title>
+<style>
+  :root {
+    --ink: #1c1a17;
+    --paper: #f7f4ee;
+    --card: #ffffff;
+    --line: #ddd7c9;
+    --stamp: #b5502f;
+    --stamp-dark: #7c341c;
+    --muted: #8a8478;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: ui-monospace, "SF Mono", "Courier New", monospace;
+    min-height: 100vh;
+    padding: 24px 16px 80px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .brand .mark {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .brand .tag {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+  .sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+  .address-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 18px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .address-card::before {
+    content: "";
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 34px; height: 34px;
+    border: 2px dashed var(--stamp);
+    border-radius: 3px;
+    opacity: 0.5;
+  }
+  .address-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px; }
+  .address-value {
+    font-size: 17px;
+    font-weight: 700;
+    word-break: break-all;
+    margin-bottom: 14px;
+    padding-right: 44px;
+  }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 9px 14px;
+    border-radius: 3px;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+    cursor: pointer;
+    letter-spacing: 0.3px;
+  }
+  button.ghost {
+    background: transparent;
+    color: var(--ink);
+  }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: 0.5; cursor: default; }
+
+  .status {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 4px 0 20px;
+    min-height: 16px;
+  }
+  .status.err { color: var(--stamp-dark); }
+
+  .inbox-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .inbox-head h2 {
+    font-family: Georgia, serif;
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+  }
+  .count { font-size: 11px; color: var(--muted); }
+
+  .msg {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line);
+    border-radius: 3px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .msg.unread { border-left-color: var(--stamp); }
+  .msg .from { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .msg .subj { font-size: 13px; margin-bottom: 4px; }
+  .msg .meta { font-size: 11px; color: var(--muted); }
+
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 13px;
+    border: 1px dashed var(--line);
+    border-radius: 4px;
+  }
+
+  .overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(28,26,23,0.5);
+    align-items: flex-start;
+    justify-content: center;
+    padding: 30px 14px;
+    z-index: 10;
+    overflow-y: auto;
+  }
+  .overlay.open { display: flex; }
+  .sheet {
+    background: var(--card);
+    border-radius: 5px;
+    max-width: 560px;
+    width: 100%;
+    padding: 20px;
+  }
+  .sheet .close { float: right; }
+  .sheet h3 { font-family: Georgia, serif; font-size: 16px; margin: 4px 0 4px; }
+  .sheet .meta2 { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .sheet .body { font-size: 13px; line-height: 1.6; white-space: pre-wrap; border-top: 1px solid var(--line); padding-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><span class="mark">Burner</span><span class="tag">disposable inbox</span></div>
+  <div class="sub">Addresses live until you close this page. Nothing is saved anywhere.</div>
+
+  <div class="address-card">
+    <div class="address-label">your address</div>
+    <div class="address-value" id="addr">generating…</div>
+    <div class="row">
+      <button id="copyBtn">Copy address</button>
+      <button class="ghost" id="newBtn">New address</button>
+      <button class="ghost" id="refreshBtn">Check inbox</button>
+    </div>
+  </div>
+  <div class="status" id="status">Setting up your inbox…</div>
+
+  <div class="inbox-head">
+    <h2>Inbox</h2>
+    <span class="count" id="count"></span>
+  </div>
+  <div id="list"><div class="empty">No mail yet.</div></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <button class="ghost close" id="closeBtn">Close</button>
+    <h3 id="mSubj"></h3>
+    <div class="meta2" id="mMeta"></div>
+    <div class="body" id="mBody">Loading…</div>
+  </div>
+</div>
+
+<script>
+const API = "https://api.mail.tm";
+let token = null, address = null, seen = new Set(), pollTimer = null;
+
+const $ = id => document.getElementById(id);
+function setStatus(text, isErr) {
+  const s = $("status");
+  s.textContent = text;
+  s.className = "status" + (isErr ? " err" : "");
+}
+
+async function createAccount() {
+  clearInterval(pollTimer);
+  $("addr").textContent = "generating…";
+  $("list").innerHTML = '<div class="empty">No mail yet.</div>';
+  $("count").textContent = "";
+  seen = new Set();
+  setStatus("Setting up your inbox…");
+  try {
+    const dRes = await fetch(API + "/domains?page=1");
+    if (!dRes.ok) throw new Error("domains");
+    const dJson = await dRes.json();
+    const domains = dJson["hydra:member"] || dJson.member || [];
+    if (!domains.length) throw new Error("no domains");
+    const domain = domains[0].domain;
+    const local = "burner" + Math.random().toString(36).slice(2, 10);
+    address = local + "@" + domain;
+    const password = Math.random().toString(36).slice(2, 12) + "Aa1";
+
+    const accRes = await fetch(API + "/accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address, password })
+    });
+    if (!accRes.ok) throw new Error("account creation failed");
+
+    const tokRes = await fetch(API + "/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address, password })
+    });
+    if (!tokRes.ok) throw new Error("auth failed");
+    const tokJson = await tokRes.json();
+    token = tokJson.token;
+
+    $("addr").textContent = address;
+    setStatus("Ready. New mail is checked automatically.");
+    fetchMessages();
+    pollTimer = setInterval(fetchMessages, 8000);
+  } catch (err) {
+    setStatus("Couldn't reach the mail service right now. Try 'New address' again in a moment.", true);
+  }
+}
+
+async function fetchMessages() {
+  if (!token) return;
+  try {
+    const res = await fetch(API + "/messages?page=1", {
+      headers: { Authorization: "Bearer " + token }
+    });
+    if (!res.ok) throw new Error("fetch failed");
+    const json = await res.json();
+    const messages = json["hydra:member"] || json.member || [];
+    renderList(messages);
+  } catch (err) {
+    setStatus("Connection hiccup — will retry automatically.", true);
+  }
+}
+
+function renderList(messages) {
+  const list = $("list");
+  $("count").textContent = messages.length ? messages.length + (messages.length === 1 ? " message" : " messages") : "";
+  if (!messages.length) {
+    list.innerHTML = '<div class="empty">No mail yet.</div>';
+    return;
+  }
+  list.innerHTML = "";
+  messages.forEach(m => {
+    const isNew = !seen.has(m.id);
+    seen.add(m.id);
+    const div = document.createElement("div");
+    div.className = "msg" + (isNew ? " unread" : "");
+    const from = (m.from && (m.from.name || m.from.address)) || "unknown sender";
+    const when = m.createdAt ? new Date(m.createdAt).toLocaleString() : "";
+    div.innerHTML =
+      '<div class="from">' + escapeHtml(from) + '</div>' +
+      '<div class="subj">' + escapeHtml(m.subject || "(no subject)") + '</div>' +
+      '<div class="meta">' + when + '</div>';
+    div.addEventListener("click", () => openMessage(m.id));
+    list.appendChild(div);
+  });
+}
+
+async function openMessage(id) {
+  $("overlay").classList.add("open");
+  $("mSubj").textContent = "Loading…";
+  $("mMeta").textContent = "";
+  $("mBody").textContent = "Loading…";
+  try {
+    const res = await fetch(API + "/messages/" + id, {
+      headers: { Authorization: "Bearer " + token }
+    });
+    const m = await res.json();
+    const from = (m.from && (m.from.name || m.from.address)) || "unknown sender";
+    $("mSubj").textContent = m.subject || "(no subject)";
+    $("mMeta").textContent = "From " + from + (m.createdAt ? " · " + new Date(m.createdAt).toLocaleString() : "");
+    $("mBody").textContent = m.text || (m.html ? stripHtml(m.html.join ? m.html.join("\n") : m.html) : "(empty message)");
+  } catch (err) {
+    $("mBody").textContent = "Couldn't load this message.";
+  }
+}
+
+function stripHtml(html) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || "";
+}
+function escapeHtml(str) {
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+$("copyBtn").addEventListener("click", () => {
+  if (!address) return;
+  navigator.clipboard.writeText(address).then(() => {
+    setStatus("Address copied.");
+  });
+});
+$("newBtn").addEventListener("click", createAccount);
+$("refreshBtn").addEventListener("click", fetchMessages);
+$("closeBtn").addEventListener("click", () => $("overlay").classList.remove("open"));
+$("overlay").addEventListener("click", e => { if (e.target.id === "overlay") $("overlay").classList.remove("open"); });
+
+createAccount();
+</script>
+</body>
+</html>
 
