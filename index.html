@@ -284,7 +284,7 @@
 <div class="toast" id="toast">Copied to clipboard</div>
 
 <script>
-const API = "https://api.mail.tm";
+const API = "https://www.1secmail.com/api/v1/";
 
 const addressField = document.getElementById('addressField');
 const copyBtn = document.getElementById('copyBtn');
@@ -294,8 +294,8 @@ const toast = document.getElementById('toast');
 const clockEl = document.getElementById('clock');
 const watchingEl = document.querySelector('.watching');
 
-let currentAddress = "";
-let token = "";
+let currentLogin = "";
+let currentDomain = "";
 let mails = [];
 let pollTimer = null;
 let seenIds = new Set();
@@ -306,12 +306,8 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 1800);
 }
 
-function randomPassword() {
-  return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-}
-
 function timeAgo(dateStr) {
-  const diff = Math.max(0, Date.now() - new Date(dateStr).getTime());
+  const diff = Math.max(0, Date.now() - new Date(dateStr.replace(' ', 'T')).getTime());
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
@@ -333,11 +329,10 @@ function renderList() {
   inboxBody.innerHTML = mails.map((m, i) => `
     <div class="mail-item ${m.unread ? 'unread' : ''}" data-index="${i}">
       <div class="mail-top">
-        <span class="mail-from">${(m.from && m.from.address) || 'unknown sender'}</span>
-        <span class="mail-time">${timeAgo(m.createdAt)}</span>
+        <span class="mail-from">${m.from || 'unknown sender'}</span>
+        <span class="mail-time">${timeAgo(m.date)}</span>
       </div>
       <div class="mail-subject">${m.subject || '(no subject)'}</div>
-      <div class="mail-preview">${(m.intro || '').slice(0, 90)}</div>
     </div>
   `).join('');
 
@@ -356,34 +351,31 @@ async function openMail(idx) {
   document.getElementById('backBtn').addEventListener('click', renderList);
 
   try {
-    const res = await fetch(`${API}/messages/${m.id}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const url = `${API}?action=readMessage&login=${encodeURIComponent(currentLogin)}&domain=${encodeURIComponent(currentDomain)}&id=${m.id}`;
+    const res = await fetch(url);
     const full = await res.json();
-    const bodyHtml = full.html && full.html.length ? full.html.join('') : (full.text || '').replace(/\n/g, '<br>');
+    const bodyHtml = full.htmlBody && full.htmlBody.length ? full.htmlBody : (full.textBody || full.body || '').replace(/\n/g, '<br>');
     inboxBody.innerHTML = `
       <div class="reader">
         <button class="reader-back" id="backBtn">← Back to inbox</button>
         <div class="reader-subject">${full.subject || '(no subject)'}</div>
-        <div class="reader-meta">From ${(full.from && full.from.address) || 'unknown'} · ${timeAgo(full.createdAt)}</div>
+        <div class="reader-meta">From ${full.from || 'unknown'} · ${timeAgo(full.date)}</div>
         <div class="reader-body">${bodyHtml || '(empty message)'}</div>
       </div>`;
     document.getElementById('backBtn').addEventListener('click', renderList);
   } catch (e) {
-    inboxBody.innerHTML = `<div class="reader"><button class="reader-back" id="backBtn">← Back to inbox</button><div class="reader-meta">Couldn't load this message.</div></div>`;
+    inboxBody.innerHTML = `<div class="reader"><button class="reader-back" id="backBtn">← Back to inbox</button><div class="reader-meta">Couldn't load this message: ${e.message}</div></div>`;
     document.getElementById('backBtn').addEventListener('click', renderList);
   }
 }
 
 async function pollMessages() {
-  if (!token) return;
+  if (!currentLogin) return;
   try {
-    const res = await fetch(`${API}/messages?page=1`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error('poll failed');
-    const data = await res.json();
-    const members = data['hydra:member'] || [];
+    const url = `${API}?action=getMessages&login=${encodeURIComponent(currentLogin)}&domain=${encodeURIComponent(currentDomain)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const members = await res.json();
     let newOnes = 0;
     for (const msg of members) {
       if (!seenIds.has(msg.id)) {
@@ -410,47 +402,27 @@ async function generateNewAddress() {
   renderEmpty("Setting up your inbox…");
   mails = [];
   seenIds = new Set();
-  token = "";
+  currentLogin = "";
+  currentDomain = "";
   if (pollTimer) clearInterval(pollTimer);
 
   try {
     let domRes;
     try {
-      domRes = await fetch(`${API}/domains`);
+      domRes = await fetch(`${API}?action=getDomainList`);
     } catch (netErr) {
-      throw new Error(`Network blocked reaching ${API} (${netErr.message}). If you're viewing this inside the Claude chat preview, download the file and open it directly in a browser tab instead.`);
+      throw new Error(`Network blocked reaching 1secmail.com (${netErr.message}). If this is being viewed inside a sandboxed preview, open the deployed page in its own browser tab.`);
     }
-    if (!domRes.ok) throw new Error(`Domains request failed: HTTP ${domRes.status}`);
-    const domData = await domRes.json();
-    const domains = domData['hydra:member'] || [];
-    if (!domains.length) throw new Error('No domains returned by the mail service');
-    const domain = domains[0].domain;
+    if (!domRes.ok) throw new Error(`Domain list request failed: HTTP ${domRes.status}`);
+    const domains = await domRes.json();
+    if (!Array.isArray(domains) || !domains.length) throw new Error('No domains returned by the mail service');
+    const domain = domains[Math.floor(Math.random() * domains.length)];
 
-    const local = 'u' + Math.random().toString(36).slice(2, 10);
-    const address = `${local}@${domain}`;
-    const password = randomPassword();
+    const login = 'u' + Math.random().toString(36).slice(2, 10);
 
-    const createRes = await fetch(`${API}/accounts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ address, password })
-    });
-    if (!createRes.ok) {
-      const errText = await createRes.text().catch(() => '');
-      throw new Error(`Account creation failed: HTTP ${createRes.status} ${errText.slice(0,120)}`);
-    }
-
-    const tokenRes = await fetch(`${API}/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ address, password })
-    });
-    if (!tokenRes.ok) throw new Error(`Token request failed: HTTP ${tokenRes.status}`);
-    const tokenData = await tokenRes.json();
-
-    currentAddress = address;
-    token = tokenData.token;
-    addressField.textContent = currentAddress;
+    currentLogin = login;
+    currentDomain = domain;
+    addressField.textContent = `${login}@${domain}`;
     renderEmpty();
     startPolling();
   } catch (e) {
@@ -461,8 +433,8 @@ async function generateNewAddress() {
 }
 
 copyBtn.addEventListener('click', () => {
-  if (!currentAddress) return;
-  navigator.clipboard.writeText(currentAddress).catch(() => {});
+  if (!currentLogin) return;
+  navigator.clipboard.writeText(`${currentLogin}@${currentDomain}`).catch(() => {});
   showToast("Copied to clipboard");
 });
 
@@ -479,4 +451,3 @@ generateNewAddress();
 </script>
 </body>
 </html>
-
