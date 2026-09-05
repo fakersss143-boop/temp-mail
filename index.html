@@ -285,6 +285,11 @@
 
 <script>
 const API = "https://www.1secmail.com/api/v1/";
+const CORS_PROXY = "https://api.allorigins.win/raw?url=";
+
+function proxied(url) {
+  return `${CORS_PROXY}${encodeURIComponent(url)}`;
+}
 
 const addressField = document.getElementById('addressField');
 const copyBtn = document.getElementById('copyBtn');
@@ -351,7 +356,7 @@ async function openMail(idx) {
   document.getElementById('backBtn').addEventListener('click', renderList);
 
   try {
-    const url = `${API}?action=readMessage&login=${encodeURIComponent(currentLogin)}&domain=${encodeURIComponent(currentDomain)}&id=${m.id}`;
+    const url = proxied(`${API}?action=readMessage&login=${encodeURIComponent(currentLogin)}&domain=${encodeURIComponent(currentDomain)}&id=${m.id}`);
     const res = await fetch(url);
     const full = await res.json();
     const bodyHtml = full.htmlBody && full.htmlBody.length ? full.htmlBody : (full.textBody || full.body || '').replace(/\n/g, '<br>');
@@ -372,7 +377,7 @@ async function openMail(idx) {
 async function pollMessages() {
   if (!currentLogin) return;
   try {
-    const url = `${API}?action=getMessages&login=${encodeURIComponent(currentLogin)}&domain=${encodeURIComponent(currentDomain)}`;
+    const url = proxied(`${API}?action=getMessages&login=${encodeURIComponent(currentLogin)}&domain=${encodeURIComponent(currentDomain)}`);
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const members = await res.json();
@@ -409,9 +414,9 @@ async function generateNewAddress() {
   try {
     let domRes;
     try {
-      domRes = await fetch(`${API}?action=getDomainList`);
+      domRes = await fetch(proxied(`${API}?action=getDomainList`));
     } catch (netErr) {
-      throw new Error(`Network blocked reaching 1secmail.com (${netErr.message}). If this is being viewed inside a sandboxed preview, open the deployed page in its own browser tab.`);
+      throw new Error(`Network blocked reaching 1secmail.com via proxy (${netErr.message}). Try again in a moment — the CORS relay can be briefly rate-limited.`);
     }
     if (!domRes.ok) throw new Error(`Domain list request failed: HTTP ${domRes.status}`);
     const domains = await domRes.json();
