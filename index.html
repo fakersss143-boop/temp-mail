@@ -414,10 +414,16 @@ async function generateNewAddress() {
   if (pollTimer) clearInterval(pollTimer);
 
   try {
-    const domRes = await fetch(`${API}/domains`);
+    let domRes;
+    try {
+      domRes = await fetch(`${API}/domains`);
+    } catch (netErr) {
+      throw new Error(`Network blocked reaching ${API} (${netErr.message}). If you're viewing this inside the Claude chat preview, download the file and open it directly in a browser tab instead.`);
+    }
+    if (!domRes.ok) throw new Error(`Domains request failed: HTTP ${domRes.status}`);
     const domData = await domRes.json();
     const domains = domData['hydra:member'] || [];
-    if (!domains.length) throw new Error('no domains');
+    if (!domains.length) throw new Error('No domains returned by the mail service');
     const domain = domains[0].domain;
 
     const local = 'u' + Math.random().toString(36).slice(2, 10);
@@ -429,14 +435,17 @@ async function generateNewAddress() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ address, password })
     });
-    if (!createRes.ok) throw new Error('account creation failed');
+    if (!createRes.ok) {
+      const errText = await createRes.text().catch(() => '');
+      throw new Error(`Account creation failed: HTTP ${createRes.status} ${errText.slice(0,120)}`);
+    }
 
     const tokenRes = await fetch(`${API}/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ address, password })
     });
-    if (!tokenRes.ok) throw new Error('token failed');
+    if (!tokenRes.ok) throw new Error(`Token request failed: HTTP ${tokenRes.status}`);
     const tokenData = await tokenRes.json();
 
     currentAddress = address;
@@ -445,8 +454,9 @@ async function generateNewAddress() {
     renderEmpty();
     startPolling();
   } catch (e) {
+    console.error(e);
     addressField.textContent = "couldn't generate address";
-    renderEmpty("Setup failed — the mail service may be unreachable from here. Try New again.");
+    renderEmpty(e.message || "Setup failed. Try New again.");
   }
 }
 
@@ -469,3 +479,4 @@ generateNewAddress();
 </script>
 </body>
 </html>
+
